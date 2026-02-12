@@ -14,7 +14,7 @@ import time
 # 66: get raw accelerometer data
 
 # tipo de dado coletado
-type_of_data = 0
+type_of_data = 0  
 
 data_strategies = {
     0: {
@@ -69,7 +69,7 @@ imu_configuration = {
                            "imu9": [-0.19449,0.68294,0.68215,-0.17446],
                            "imu10": [-0.11651,-0.68053,-0.71276,-0.12357]},
     "logical_ids": imu_ids,
-    "streaming_commands": [0, 1, 255, 255, 255, 255, 255, 255], #command 80 - ccepts a list of 8 bytes
+    "streaming_commands": [type_of_data, 65, 66, 255, 255, 255, 255, 255], #command 80 - ccepts a list of 8 bytes
     "baudrate": 115200 #command 231
 }
 
@@ -93,6 +93,7 @@ startTime = time.time()
 current_imu1 = None
 current_imu2 = None
 
+serial_port.reset_input_buffer()
 while True:
     try:
         bytes_to_read = serial_port.in_waiting
@@ -102,50 +103,39 @@ while True:
 
             # Obtain data in dongle serial port
             data = serial_port.read(bytes_to_read)
+            print(data)
             
             if data[0] != 0 and len(data) <=3:
                 print('Corrupted data read.')
             
-            value = current_strategy["extract"](data)
+            #value = current_strategy["extract"](data)
+            value = current_strategy["extract"](data) 
 
             # Check which IMU is sending information
             if data[1] == imu_ids[0]:
-                current_imu1 = value
+                current_imu1 = value.get(current_strategy["key"], [])
                 imu1_values.append(current_imu1)
             
             elif data[1] == imu_ids[1]:
-                current_imu2 = value
+                current_imu2 = value.get(current_strategy["key"], [])
                 imu2_values.append(current_imu2)
                 
             # if possible, calculate the angle between the two IMUs
-            if current_strategy["angle_function"] and (current_imu1 & current_imu2):
-                angle = current_strategy["angle_function"](current_imu1, current_imu2)
-                current_imu1 = None
-                current_imu2 = None
-                
+            if current_strategy["angle_function"] and (current_imu1 is not None) and (current_imu2 is not None):
                 timestamp = time.time() - startTime
-
-                angles.append(angle)
                 timestamps.append(timestamp)
                 
-                print(f"Time: {timestamp:.4f}s | Angle: {angle:.2f}")
+                angle = current_strategy["angle_function"](current_imu1, current_imu2)
+
+                angles.append(angle)
+                
+                print(f"Time: {timestamp:.4f}s | IMU 1: {current_imu1} | IMU 2: {current_imu2} | Angle: {angle:.2f}")
+
+                current_imu1 = None
+                current_imu2 = None
     
     except KeyboardInterrupt:            
         print("Finished execution with control + c. ")
         serial_op.stop_streaming(serial_port, imu_configuration['logical_ids'])
         serial_op.manual_flush(serial_port)
         break
-    except Exception as error:
-        print("Unhandled exception.")
-        print(error)
-        serial_op.stop_streaming(serial_port, imu_configuration['logical_ids'])
-        break 
-
-            
-            
-            
-
-
-            
-
-        

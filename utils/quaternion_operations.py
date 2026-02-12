@@ -28,6 +28,9 @@ def calculate_angle_between_quaternions(firstQuaternion : Quaternion,
     """
 
     # Quaternion(w, x, y, z) -> imu yei format (x, y, z, w) -> See user's manual
+    #firstQuaternion = [float(q) for q in firstQuaternion if isinstance(q, (int, float))]
+    #secondQuaternion = [float(q) for q in secondQuaternion if isinstance(q, (int, float))]
+
     firstQuaternionObject = Quaternion(firstQuaternion[1], firstQuaternion[2], firstQuaternion[3], firstQuaternion[0])
     secondQuaterionObject = Quaternion(secondQuaternion[1], secondQuaternion[2], secondQuaternion[3], secondQuaternion[0])
 

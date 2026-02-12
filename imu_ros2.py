@@ -37,7 +37,7 @@ imu_configuration = {
                            "imu9": [-0.19449,0.68294,0.68215,-0.17446],
                            "imu10": [-0.11651,-0.68053,-0.71276,-0.12357]},
     "logical_ids": [imu_ids[0], imu_ids[1]],
-    "streaming_commands": [0, 255, 255, 255, 255, 255, 255, 255], #command 80 - ccepts a list of 8 bytes
+    "streaming_commands": [0, 65, 66, 255, 255, 255, 255, 255], #command 80 - ccepts a list of 8 bytes
     "baudrate": 115200 #command 231
 }
 
@@ -83,6 +83,7 @@ class IMUNode(Node):
             bytes_to_read = self.serial_port.inWaiting
             if bytes_to_read > 0:
                 data = self.serial_port.read(bytes_to_read)
+                print(data)
                 #print(data)
                 if data[0] != 0 and len(data) <= 3:
                     self.get_logger().warn(f'Corrupted data read from IMU.')
