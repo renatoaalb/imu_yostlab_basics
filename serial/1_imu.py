@@ -11,46 +11,18 @@ import time
 # 1: get tared orientation as euler angles
 # 2: rotation matrix
 # 37: get all corrected component sensor data
+# 38: get corrected gyro rate
+# 39: get corrected accelerometer vector
 # 65: get raw gyroscope vector
 # 66: get raw accelerometer data
 
-# tipo de dado coletado
-type_of_data = 0  
-
-data_strategies = {
-    0: {
-        "extract": serial_op.extract_quaternions,
-        "key": "quaternions",
-        "angle_function": quaternions_op.calculate_angle_between_quaternions
-    },
-    1: {
-        "extract": serial_op.extract_euler_angles,
-        "key": "euler_vector", # Corrigido para bater com o return da função
-        "angle_function": euler_op.calculate_angle_between_euler_angles
-    },
-    2: {
-        "extract": serial_op.extract_rotation_matrix,
-        "key": "rotation_matrix", # Corrigido para bater com o return da função
-        "angle_function": None
-    },
-    65: {
-        "extract": serial_op.extract_gyro,
-        "key": "gyro",
-        "angle_function": None
-    },
-    66: {
-        "extract": serial_op.extract_accel,
-        "key": "accel",
-        "angle_function": None
-    }
-}
-
-# define como extrair e obter os dados a partir do tipo requerido
-current_strategy = data_strategies.get(type_of_data)
+# Máximo número de bites lidos no buffer
+MAXIMUM_BYTES = 300 
 
 # número id das IMUs (estão escritos nas próprios IMUs)
-imu_ids = [9]
+imu_ids = [4]
 
+# Bloco para
 imu_configuration = {
     "disableCompass": True, #command 109
     "disableGyro": False, # command 107
@@ -70,16 +42,19 @@ imu_configuration = {
                            "imu9": [-0.19449,0.68294,0.68215,-0.17446],
                            "imu10": [-0.11651,-0.68053,-0.71276,-0.12357]},
     "logical_ids": imu_ids,
-    "streaming_commands": [0, 1, 37, 255, 255, 255, 255, 255], #command 80 - ccepts a list of 8 bytes
-    "baudrate": 115200 #command 231
+    "streaming_commands": [1, 38, 39, 255, 255, 255, 255, 255], #command 80 - ccepts a list of 8 bytes
+    "baudrate": 115200, #command 231,
+    "timestamp": True
 }
 
 
 # Initialize IMUs
 serial_port = serial_op.initialize_imu(imu_configuration)
 
-imu1_values = []
-imu2_values = []
+quaternions = []
+euler_angles = []
+gyro = []
+accelerometer = []
 
 timestamps = []
 
@@ -90,38 +65,49 @@ time.sleep(2)
 
 startTime = time.time()
 
-# No information collected yet
-current_imu1 = None
-current_imu2 = None
 
 serial_port.reset_input_buffer()
+isFirstLoop = True
 while True:
     try:
+        
         bytes_to_read = serial_port.in_waiting
 
+         # provavelmente não terá mais de 300 bytes para ler, mas se as informações começarem a faltar, aumente o número máximo de bytes
+        if bytes_to_read > MAXIMUM_BYTES:
+            serial_port.reset_input_buffer()
+        
         # If there are data waiting in dongle, process it
         if bytes_to_read > 0:
 
             # Obtain data in dongle serial port
             data = serial_port.read(bytes_to_read)
-            print(data)
             
             if data[0] != 0 and len(data) <=3:
                 print('Corrupted data read.')
-            
-            #value = current_strategy["extract"](data)
-            value = current_strategy["extract"](data) 
 
             # Check which IMU is sending information
             if data[1] == imu_ids[0]:
-                current_imu1 = value.get(current_strategy["key"], [])
-                imu1_values.append(current_imu1)
+                #pegar informações
+                #quaternion_value = serial_op.extract_quaternions(data, 0)
+                euler_angle_value = serial_op.extract_euler_angles(data, 0)
+                accelerometer_value = serial_op.extract_accel(data, 1)
+                gyro_value = serial_op.extract_gyro(data, 2)
+                
+
+                #quaternions.append(quaternion_value)
+                #euler
+                accelerometer.append(accelerometer_value)
+                gyro.append(gyro_value)
+                # accelerometer.append(accelerometer_value)
 
                 timestamp = time.time() - startTime
                 timestamps.append(timestamp)
-            
-            print(f"Time: {timestamp:.4f}s | {current_strategy["key"]}: {current_imu1}")
-            # if possible, calculate the angle between the two IMUs
+                #print(f"Time: {timestamp:.4f}s | Quaternion: {quaternion_value} | Accelerometer: {accelerometer_value}",
+                #       f"|\n Gyro : {gyro_value}") 
+                print(f"Time: {timestamp:.4f}s | Euler angle: {euler_angle_value} | Accelerometer: {accelerometer_value}",
+                        f"|\n Gyro : {gyro_value}") 
+
     
     except KeyboardInterrupt:            
         print("Finished execution with control + c. ")

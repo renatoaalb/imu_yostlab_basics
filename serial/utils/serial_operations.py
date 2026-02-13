@@ -4,6 +4,7 @@ import numpy as np
 import sys
 
 SMALL_IMU_DONGLE_PORT = 4128
+IMU_SENSOR_USB = 4144
 
 # If permission denied error occurs in Linux try:
 # sudo chmod 666 /dev/ttyACM0 -> with the correspondent COM port
@@ -30,6 +31,30 @@ def get_dongle_object():
     serial_port = serial.Serial(port=portIMU, baudrate=115200, timeout=0.01)
     manual_flush(serial_port)
 
+    return serial_port
+
+def get_sensor_object():
+    """ Create a serial port object to operate with imu dongle
+    
+    Returns: 
+        serial_port: PySerial object
+    """
+ 
+    # Lists available ports and select dongle port
+    ports_list = serial.tools.list_ports.comports()
+    print("Ports available: ")
+    for wire in ports_list:
+        text = "Port: {0}\tSerial#:{1}\tDesc:{2} PID {3}".format(wire.device, 
+                                                                wire.serial_number, 
+                                                                wire.description,
+                                                                wire.pid)
+        print(text)
+        if wire.pid == IMU_SENSOR_USB:
+            portIMU = wire.device
+
+    serial_port = serial.Serial(port=portIMU, baudrate=115200, timeout=0.01)
+    manual_flush(serial_port)
+    
     return serial_port
 
 def manual_flush(serial_port):
@@ -203,6 +228,7 @@ def configure_sensor(serial_port, configDict):
             command = create_imu_command(id, 231,[baudrate])
             apply_command(serial_port, command)
 
+
     # Forcing axis configuration to standar
     for id in configDict["logical_ids"]:
         command = create_imu_command(id, 116, [0])
@@ -235,91 +261,97 @@ def get_sensor_information(serial_port, logical_ids):
         command = create_imu_command(id, 130)
         apply_command(serial_port, command)
 
+def clean_list(data):
+    decoded_data = data.decode()
+    list_data = decoded_data.replace('\r\n',' ').split(' ')
+    cleaned_list_data = list(filter(None, list_data))
+
+    return cleaned_list_data
+
 # Get rotation matrix streamed in first slot. 
-def extract_rotation_matrix(data):
+def extract_rotation_matrix(data, position):
     """ Manipulate data to obtain rotation matrix
     
     Args:
         data: Raw data that sensor send
+        position: Position of the data extracted on the streaming_commands list
     
     Returns: 
         rotation matrix dictionary
     """
-    decoded_data = data.decode()
-    list_data = decoded_data.replace('\r\n',' ').split(' ')
-    cleaned_list_data = list(filter(None, list_data))
-    rotatation_vector = cleaned_list_data[0][3:].split(',')
+   
+    cleaned_list_data = clean_list(data)
+    rotatation_vector = cleaned_list_data[position][3:].split(',')
     rotatation_vector = np.array(rotatation_vector, dtype=np.float64)
     rotation_matrix = rotatation_vector.reshape((3,3))
-    return {'rotation_matrix': rotation_matrix}
+    return rotation_matrix
 
-def extract_euler_angles(data):
+def extract_euler_angles(data, position):
     """ Manipulate data to obtain rotation matrix
     
     Args:
         data: Raw data that sensor send
+        position: Position of the data extracted on the streaming_commands list
     
     Returns: 
         rotation matrix dictionary
     """
-    decoded_data = data.decode()
-    list_data = decoded_data.replace('\r\n',' ').split(' ')
-    cleaned_list_data = list(filter(None, list_data))
-    euler_vector = cleaned_list_data[0][3:].split(',')
+    cleaned_list_data = clean_list(data)
+    euler_vector = cleaned_list_data[position][3:].split(',')
     euler_vector = np.array(euler_vector, dtype=np.float64)
-    return {'euler_vector': euler_vector}
+    return euler_vector
 
-def extract_quaternions(data):
+def extract_quaternions(data, position):
     """ Manipulate data to obtain rotation matrix
     
     Args:
         data: Raw data that sensor send
+        position: Position of the data extracted on the streaming_commands list
     
     Returns: 
         rotation matrix dictionary
     """
-    decoded_data = data.decode()
-    list_data = decoded_data.replace('\r\n',' ').split(' ')
-    cleaned_list_data = list(filter(None, list_data))
-    #print(cleaned_list_data)
-    quaternion = cleaned_list_data[0][3:].split(',')
+    cleaned_list_data = clean_list(data)
+    
+    quaternion = cleaned_list_data[position][3:].split(',')
     quaternion = np.array(quaternion, dtype=np.float64)
-    return {'quaternions': quaternion}
+    return quaternion
 
-def extract_gyro(data):
+def extract_gyro(data, position):
     """ Manipulate data to obtain rotation matrix
     
     Args:
         data: Raw data that sensor send
+        position: Position of the data extracted on the streaming_commands list
     
     Returns: 
         rotation matrix dictionary
     """
-    decoded_data = data.decode()
-    list_data = decoded_data.replace('\r\n',' ').split(' ')
-    cleaned_list_data = list(filter(None, list_data))
-    gyro = cleaned_list_data[1][2:].split(',')
+    cleaned_list_data = clean_list(data)
+    
+    gyro = cleaned_list_data[position][2:].split(',')
     gyro = np.array(gyro, dtype=np.float64)
-    return {'gyro': gyro}
+    return gyro
 
-def extract_accel(data):
+def extract_accel(data, position):
     """ Manipulate data to obtain rotation matrix
     
     Args:
         data: Raw data that sensor send
+        position: Position of the data extracted on the streaming_commands list
     
     Returns: 
         rotation matrix dictionary
     """
-    decoded_data = data.decode()
-    list_data = decoded_data.replace('\r\n',' ').split(' ')
-    cleaned_list_data = list(filter(None, list_data))
-    accel = cleaned_list_data[2][2:].split(',')
+    cleaned_list_data = clean_list(data)
+    accel = cleaned_list_data[position][3:].split(',')
+
     accel = np.array(accel, dtype=np.float64)
-    return {'accel': accel}
+    return accel
 
 
 def extract_acc_quat(data):
+    # old
     """ Manipulate data to obtain rotation matrix
     
     Args:
@@ -328,20 +360,13 @@ def extract_acc_quat(data):
     Returns: 
         rotation matrix dictionary
     """
-    print('COMEÇOU ESSA FUNCAO')
-    decoded_data = data.decode()
-    list_data = decoded_data.replace('\r\n',' ').split(' ')
-    cleaned_list_data = list(filter(None, list_data))
-    print(cleaned_list_data)
+    cleaned_list_data = clean_list(data)
     acc = cleaned_list_data[0][3:].split(',')
-    print(acc)
     quaternion = cleaned_list_data[1][:].split(',')
-    print(quaternion)
 
     acc = np.array(acc, dtype=np.float64)
-    print(acc)
     quaternion = np.array(quaternion, dtype=np.float64)
-    print(quaternion)
+
 
     return {'acc': acc, 'quaternions': quaternion}
 
@@ -359,7 +384,8 @@ def initialize_imu(configuration_dict):
                 "tareSensor": Boolean,
                 "filterMode": Integer (see user's manual)
                 "logical_ids": list of logical ids,
-                "streaming_commands": list of streaming slots
+                "streaming_commands": list of streaming slots,
+                "timestamp": Boolean
         }
     
     Returns:

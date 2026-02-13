@@ -3,6 +3,7 @@ import utils.serial_operations as serial_op
 import utils.quaternion_operations as quaternions_op
 import utils.euler_angle_operations as euler_op
 import time
+import utils.file_management as file_management
 
 
 # Set parameters for IMU configuration
@@ -14,7 +15,8 @@ import time
 # 66: get raw accelerometer data
 
 # tipo de dado coletado
-type_of_data = 0  
+type_of_data = 0 
+file_name = "data/coleta.json"
 
 data_strategies = {
     0: {
@@ -48,7 +50,7 @@ data_strategies = {
 current_strategy = data_strategies.get(type_of_data)
 
 # número id das IMUs (estão escritos nas próprios IMUs)
-imu_ids = [9, 10]
+imu_ids = [4, 9]
 
 imu_configuration = {
     "disableCompass": True, #command 109
@@ -103,25 +105,25 @@ while True:
 
             # Obtain data in dongle serial port
             data = serial_port.read(bytes_to_read)
-            print(data)
             
             if data[0] != 0 and len(data) <=3:
                 print('Corrupted data read.')
             
             #value = current_strategy["extract"](data)
-            value = current_strategy["extract"](data) 
+            value = current_strategy["extract"](data, 0) 
 
             # Check which IMU is sending information
             if data[1] == imu_ids[0]:
-                current_imu1 = value.get(current_strategy["key"], [])
+                current_imu1 = value
                 imu1_values.append(current_imu1)
+                print(current_imu1)
             
             elif data[1] == imu_ids[1]:
-                current_imu2 = value.get(current_strategy["key"], [])
+                current_imu2 = value
                 imu2_values.append(current_imu2)
                 
             # if possible, calculate the angle between the two IMUs
-            if current_strategy["angle_function"] and (current_imu1 is not None) and (current_imu2 is not None):
+            if (current_imu1 is not None) and (current_imu2 is not None):
                 timestamp = time.time() - startTime
                 timestamps.append(timestamp)
                 
@@ -131,6 +133,15 @@ while True:
                 
                 print(f"Time: {timestamp:.4f}s | IMU 1: {current_imu1} | IMU 2: {current_imu2} | Angle: {angle:.2f}")
 
+                data_imus = {
+                    "time_stamp": timestamp,
+                    "quaternion_thigh": str(current_imu1),
+                    "quaternion_ankle": str(current_imu2),
+                }
+                file_management.write_to_json_file(file_name, 
+                                               data_imus, 
+                                               write_mode='a')
+                
                 current_imu1 = None
                 current_imu2 = None
     
