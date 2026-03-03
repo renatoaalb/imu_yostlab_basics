@@ -69,3 +69,4 @@ def get_rotation_matrix_from_quaternions(quaternions):
 if __name__ == '__main__':
     resultantQuaternion = calculate_angle_between_quaternions([ 0.968, 0.008, -0.008, 0.252], [ 0.382, 0.605,  0.413, 0.563])
     print(resultantQuaternion)
+

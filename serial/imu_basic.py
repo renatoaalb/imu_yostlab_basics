@@ -20,7 +20,7 @@ while True:
 
         if data is not None:
             quaternion1 = imu_yostlabs_lara.extract_data(data, type_of_data = 0, imu_id = 9)
-            quaternion2 = imu_yostlabs_lara.extract_data(data, type_of_data = 0, imu_id = 10)
+            quaternion2 = imu_yostlabs_lara.extract_data(data, type_of_data = 1, imu_id = 10)
 
             if quaternion1 is not None:
                 current_quaternion1 = quaternion1
@@ -28,9 +28,10 @@ while True:
             if quaternion2 is not None:
                 current_quaternion2 = quaternion2
                 
-        if (current_quaternion1 is not None) and current_quaternion2 is not None:
+        if (current_quaternion1 is not None) and (current_quaternion2 is not None):
             timestamp = time.time() - startTime
-            print("Quaternion 1:", current_quaternion1, "\nQuaternion 2:", current_quaternion2, "\n")
+            print("Quaternion 1:", current_quaternion1, "\nQuaternion 2:", current_quaternion2, "\nTimestamp:",
+                  timestamp, "\n")
             current_quaternion1 = current_quaternion2 = None     
 
     except KeyboardInterrupt:            

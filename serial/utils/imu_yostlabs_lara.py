@@ -139,11 +139,11 @@ def extract_data(data, type_of_data, imu_id):
     # streaming commands:
     # 0: get tared orientation as quaternions
     # 1: get tared orientation as euler angles
-    # 2: rotation matrix
+    # 2: rotation matrix !!
     # 37: get all corrected component sensor data
     # 38: get corrected gyro rate
     # 39: get corrected accelerometer vector
-    # 40: get corrected magnetometer data
+    # 40: get corrected magnetometer data !!
 
     current_strategy = data_strategies.get(type_of_data)
 
@@ -160,3 +160,5 @@ def stop_streaming(serial_port, imu_ids):
     serial_op.stop_streaming(serial_port, imu_ids)
     serial_op.manual_flush(serial_port)
 
+# def correct_position(current_strategy["position"])
+# return real_position
