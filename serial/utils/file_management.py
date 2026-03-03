@@ -9,6 +9,7 @@ import pickle
 import sys
 import os
 
+#colors
 RED = "\033[1;31m"
 BLUE = "\033[1;34m"
 CYAN = "\033[1;36m"

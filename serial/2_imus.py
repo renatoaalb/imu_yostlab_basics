@@ -50,7 +50,7 @@ data_strategies = {
 current_strategy = data_strategies.get(type_of_data)
 
 # número id das IMUs (estão escritos nas próprios IMUs)
-imu_ids = [4, 9]
+imu_ids = [10, 9]
 
 imu_configuration = {
     "disableCompass": True, #command 109
@@ -114,9 +114,9 @@ while True:
 
             # Check which IMU is sending information
             if data[1] == imu_ids[0]:
+                print(list(data))
                 current_imu1 = value
                 imu1_values.append(current_imu1)
-                print(current_imu1)
             
             elif data[1] == imu_ids[1]:
                 current_imu2 = value
@@ -131,7 +131,7 @@ while True:
 
                 angles.append(angle)
                 
-                print(f"Time: {timestamp:.4f}s | IMU 1: {current_imu1} | IMU 2: {current_imu2} | Angle: {angle:.2f}")
+                #print(f"Time: {timestamp:.4f}s | IMU 1: {current_imu1} | IMU 2: {current_imu2} | Angle: {angle:.2f}")
 
                 data_imus = {
                     "time_stamp": timestamp,

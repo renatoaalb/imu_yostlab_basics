@@ -132,6 +132,7 @@ def start_streaming(serial_port, logical_ids):
         command = create_imu_command(id, 85)
         apply_command(serial_port, command)
     return serial_port
+
 def clean_data_vector(data):
     decoded_data = data.decode()
     cleaned_data = decoded_data.replace('\r\n',' ').split(' ')
@@ -234,6 +235,34 @@ def configure_sensor(serial_port, configDict):
         command = create_imu_command(id, 116, [0])
         apply_command(serial_port, command)
 
+def configure_streaming(serial_port, configDict):
+    """ Apply common sensor configuration
+
+    Args:
+        serial_port: PySerial Object
+        configDict: dictionary with sensor basic configuration {
+                "interval": Integer,
+                "duration": Integer,
+                "delay": Integer,
+                "timestamp": Boolean,
+                "logical_ids": list of logical ids
+        }
+    """
+    for id in configDict["logical_ids"]:
+        command = create_imu_command(id, 82, [configDict["interval"], configDict["duration"], configDict["delay"]])
+        apply_command(serial_port, command)
+
+    if configDict["timestamp"]:
+        for id in configDict["logical_ids"]:
+            command = create_imu_command(id, 95, [0])
+            apply_command(serial_port, command)
+
+def get_timestamp(serial_port, logical_ids):
+    for id in logical_ids:
+        command = create_imu_command(id, 83)
+        apply_command(serial_port, command, showResponse=True)
+
+
 def tare_sensor(serial_port, logical_ids):
     """ Apply tare sensor operation
 
@@ -297,6 +326,7 @@ def extract_euler_angles(data, position):
         rotation matrix dictionary
     """
     cleaned_list_data = clean_list(data)
+
     euler_vector = cleaned_list_data[position][3:].split(',')
     euler_vector = np.array(euler_vector, dtype=np.float64)
     return euler_vector
@@ -422,10 +452,46 @@ def initialize_imu(configuration_dict):
     print("Done.")
 
 
-    print("Starting streamnig.")
+    print("Starting streaming.")
     # Start streaming
     start_streaming(serial_port, configuration_dict['logical_ids'])
     
     print("IMU's ready to use.")
 
     return serial_port
+
+def initialize_dongle(imu_ids):
+    # Find and open serial port for the IMU dongle
+    print("Getting imu object:")
+    serial_port = get_dongle_object()
+    print("Done.")
+
+    # Clean outputs 
+    manual_flush(serial_port)
+
+    # Stop streaming
+    print("Stoping streaming.")
+    stop_streaming(serial_port, imu_ids)
+
+    return serial_port
+
+#same, but does not include start streaming or initializing the dongle
+def revised_initialize_imu(serial_port, configuration_dict):
+     
+
+
+    # Setting streaming slots, this means that while streaming sensors will send
+    # this data to the dongle as in page 29 - User manual: 
+    # 0 - Differential quaternions; 
+    # 1 - tared orientation as euler angles; 
+    # 2 - rotation matrix
+    # 255 - No data
+    # See user manual to get more information
+    set_streaming_slots(serial_port, 
+                     configuration_dict['logical_ids'], 
+                     configuration_dict['streaming_commands'])
+
+    # Set magnetometer(explain it better), calibGyro if calibGyro=True and Tare sensor
+    print('Starting configuration: ')
+    configure_sensor(serial_port, configuration_dict)
+    print("Done.")

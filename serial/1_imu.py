@@ -20,7 +20,7 @@ import time
 MAXIMUM_BYTES = 300 
 
 # número id das IMUs (estão escritos nas próprios IMUs)
-imu_ids = [4]
+imu_ids = [9]
 
 # Bloco para
 imu_configuration = {
@@ -42,7 +42,7 @@ imu_configuration = {
                            "imu9": [-0.19449,0.68294,0.68215,-0.17446],
                            "imu10": [-0.11651,-0.68053,-0.71276,-0.12357]},
     "logical_ids": imu_ids,
-    "streaming_commands": [1, 38, 39, 255, 255, 255, 255, 255], #command 80 - ccepts a list of 8 bytes
+    "streaming_commands": [0, 38, 39, 255, 255, 255, 255, 255], #command 80 - ccepts a list of 8 bytes
     "baudrate": 115200, #command 231,
     "timestamp": True
 }
@@ -89,13 +89,13 @@ while True:
             # Check which IMU is sending information
             if data[1] == imu_ids[0]:
                 #pegar informações
-                #quaternion_value = serial_op.extract_quaternions(data, 0)
-                euler_angle_value = serial_op.extract_euler_angles(data, 0)
+                quaternion_value = serial_op.extract_quaternions(data, 0)
+                #euler_angle_value = serial_op.extract_euler_angles(data, 0)
                 accelerometer_value = serial_op.extract_accel(data, 1)
                 gyro_value = serial_op.extract_gyro(data, 2)
                 
 
-                #quaternions.append(quaternion_value)
+                quaternions.append(quaternion_value)
                 #euler
                 accelerometer.append(accelerometer_value)
                 gyro.append(gyro_value)
@@ -103,10 +103,10 @@ while True:
 
                 timestamp = time.time() - startTime
                 timestamps.append(timestamp)
-                #print(f"Time: {timestamp:.4f}s | Quaternion: {quaternion_value} | Accelerometer: {accelerometer_value}",
+                print(f"Time: {timestamp:.4f}s | Quaternion: {quaternion_value} | Accelerometer: {accelerometer_value}",
                 #       f"|\n Gyro : {gyro_value}") 
-                print(f"Time: {timestamp:.4f}s | Euler angle: {euler_angle_value} | Accelerometer: {accelerometer_value}",
-                        f"|\n Gyro : {gyro_value}") 
+                #print(f"Time: {timestamp:.4f}s | Euler angle: {euler_angle_value} | Accelerometer: {accelerometer_value}",
+                        f"|\n Gyro : {gyro_value}")
 
     
     except KeyboardInterrupt:            
