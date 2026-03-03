@@ -12,7 +12,39 @@ GYRO_POSITION = 3
 COMPASS_POSITION = 4
 ROTATION_MATRIX_POSITION = 5
 
-# configuration
+# data strategies
+data_strategies = {
+    0: {
+        "extract": serial_op.extract_quaternions,
+        "key": "quaternions",
+        "angle_function": quaternions_op.calculate_angle_between_quaternions,
+        "position": QUATERNION_POSITION
+    },
+    1: {
+        "extract": serial_op.extract_euler_angles,
+        "key": "euler_vector", # Corrigido para bater com o return da função
+        "angle_function": euler_op.calculate_angle_between_euler_angles,
+        "position": EULER_ANGLE_POSITION
+    },
+    2: {
+        "extract": serial_op.extract_rotation_matrix,
+        "key": "rotation_matrix", # Corrigido para bater com o return da função
+        "angle_function": None,
+        "position": ROTATION_MATRIX_POSITION
+    },
+    37: {
+        "extract": serial_op.extract_gyro,
+        "key": "gyro",
+        "angle_function": None,
+        "position": GYRO_POSITION
+    },
+    38: {
+        "extract": serial_op.extract_accel,
+        "key": "accel",
+        "angle_function": None,
+        "position": ACCEL_POSITION
+    }
+}
 
 def initialize_dongle(imu_ids):
     serial_port = serial_op.initialize_dongle(imu_ids)
@@ -90,7 +122,19 @@ def start_streaming(serial_port, imu_ids, frequency, timestamp, duration = 42949
     
     print("IMU's ready to use.")
 
-def extract_data(serial_port, type_of_data, imu_id):
+def read_data(serial_port):
+    bytes_to_read = serial_port.in_waiting
+
+    if bytes_to_read > 0:
+        data = serial_port.read(bytes_to_read)
+        
+        if data[0] != 0 and len(data) <=3:
+            print('Corrupted data read.')
+        else: 
+            return data
+    
+
+def extract_data(data, type_of_data, imu_id):
     # Set parameters for IMU configuration
     # streaming commands:
     # 0: get tared orientation as quaternions
@@ -101,56 +145,14 @@ def extract_data(serial_port, type_of_data, imu_id):
     # 39: get corrected accelerometer vector
     # 40: get corrected magnetometer data
 
-    data_strategies = {
-        0: {
-            "extract": serial_op.extract_quaternions,
-            "key": "quaternions",
-            "angle_function": quaternions_op.calculate_angle_between_quaternions,
-            "position": QUATERNION_POSITION
-        },
-        1: {
-            "extract": serial_op.extract_euler_angles,
-            "key": "euler_vector", # Corrigido para bater com o return da função
-            "angle_function": euler_op.calculate_angle_between_euler_angles,
-            "position": EULER_ANGLE_POSITION
-        },
-        2: {
-            "extract": serial_op.extract_rotation_matrix,
-            "key": "rotation_matrix", # Corrigido para bater com o return da função
-            "angle_function": None,
-            "position": ROTATION_MATRIX_POSITION
-        },
-        37: {
-            "extract": serial_op.extract_gyro,
-            "key": "gyro",
-            "angle_function": None,
-            "position": GYRO_POSITION
-        },
-        38: {
-            "extract": serial_op.extract_accel,
-            "key": "accel",
-            "angle_function": None,
-            "position": ACCEL_POSITION
-        }
-    }
-
     current_strategy = data_strategies.get(type_of_data)
 
-    bytes_to_read = serial_port.in_waiting
+    value = current_strategy["extract"](data, current_strategy["position"])
 
-    if bytes_to_read > 0:
-        data = serial_port.read(bytes_to_read)
-        
-        if data[0] != 0 and len(data) <=3:
-            print('Corrupted data read.')
-                
-        #value = current_strategy["extract"](data)
-        value = current_strategy["extract"](data, current_strategy["position"])
-
-        if data[1] == imu_id:
-            #timestamp = serial_op.get_timestamp(serial_port, imu_id)
-            #print(timestamp)
-            return value
+    if data[1] == imu_id:
+        #timestamp = serial_op.get_timestamp(serial_port, imu_id)
+        #print(timestamp)
+        return value
 
             # Check which IMU is sending information
     
