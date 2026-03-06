@@ -11,6 +11,7 @@ ACCEL_POSITION = 2
 GYRO_POSITION = 3
 COMPASS_POSITION = 4
 ROTATION_MATRIX_POSITION = 5
+BUTTON_POSITION = 6
 
 # data strategies
 data_strategies = {
@@ -43,6 +44,11 @@ data_strategies = {
         "key": "accel",
         "angle_function": None,
         "position": ACCEL_POSITION
+    },
+    250: {
+        "extract": serial_op.extract_button,
+        "key": "button",
+        "angle_function": None
     }
 }
 
@@ -52,32 +58,25 @@ def initialize_dongle(imu_ids):
 
 def configure_imu(serial_port, imu_ids, disableCompass = True, disableGyro = False, disableAccelerometer = False, gyroAutoCalib = True, 
                    filterMode = 1, tareSensor = True, show_quaternion = True, show_euler_angle = True, show_accel = False, show_gyro = False,
-                   show_compass = False, show_rotation_matrix = False, tareWithQuaternion = None, buttonState = False, baudrate = 115200, timestamp = True):
+                   show_compass = False, show_rotation_matrix = False, tareWithQuaternion = None, show_button = False, baudrate = 115200, timestamp = True):
 
-    streaming_commands = [255] * 8
+    streaming_commands = list()
 
-    if show_quaternion:
-        streaming_commands[QUATERNION_POSITION] = 0
+    streaming_codes = [(show_quaternion, 0),
+                    (show_euler_angle, 1),
+                    (show_accel, 39),
+                    (show_gyro, 38),
+                    (show_compass, 40),
+                    (show_rotation_matrix, 2),
+                    (show_button, 250)]
 
-    
-    if show_euler_angle:
-        streaming_commands[EULER_ANGLE_POSITION] = 1
+    for show, code in streaming_codes:
+        if show:
+            streaming_commands.append(code)
 
-    
-    if show_accel:
-        streaming_commands[ACCEL_POSITION] = 39
-
-
-    if show_gyro:
-        streaming_commands[GYRO_POSITION] = 38
-
-
-    if show_compass:
-        streaming_commands[COMPASS_POSITION] = 40
-
-
-    if show_rotation_matrix:
-        streaming_commands[ROTATION_MATRIX_POSITION] = 2
+    if len(streaming_commands) < 8:
+        remaining = 8 - len(streaming_commands)
+        streaming_commands.extend([255] * remaining)
 
 
     imu_configuration = {
@@ -92,14 +91,16 @@ def configure_imu(serial_port, imu_ids, disableCompass = True, disableGyro = Fal
         "streaming_commands": streaming_commands, #command 80 - ccepts a list of 8 bytes
         "baudrate": baudrate, #command 231,
         # to implement yet
-        "buttonState": buttonState
+        "buttonState": show_button
     }
 
     serial_op.revised_initialize_imu(serial_port, imu_configuration)
     time.sleep(2)
     print()
 
-def start_streaming(serial_port, imu_ids, frequency, timestamp, duration = 4294967295, delay =  0):
+    return streaming_commands
+
+def start_streaming(serial_port, imu_ids, frequency, timestamp = False, duration = 4294967295, delay =  0):
     interval = 1000000 / frequency
 
     if frequency == 0:
@@ -134,7 +135,7 @@ def read_data(serial_port):
             return data
     
 
-def extract_data(data, type_of_data, imu_id):
+def extract_data(data, type_of_data, imu_id, streamming_slots):
     # Set parameters for IMU configuration
     # streaming commands:
     # 0: get tared orientation as quaternions
@@ -147,7 +148,9 @@ def extract_data(data, type_of_data, imu_id):
 
     current_strategy = data_strategies.get(type_of_data)
 
-    value = current_strategy["extract"](data, current_strategy["position"])
+    print
+
+    value = current_strategy["extract"](data, streamming_slots.index(type_of_data))
 
     if data[1] == imu_id:
         #timestamp = serial_op.get_timestamp(serial_port, imu_id)

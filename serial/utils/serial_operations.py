@@ -293,7 +293,9 @@ def get_sensor_information(serial_port, logical_ids):
 def clean_list(data):
     decoded_data = data.decode()
     list_data = decoded_data.replace('\r\n',' ').split(' ')
+
     cleaned_list_data = list(filter(None, list_data))
+    cleaned_list_data[0] = cleaned_list_data[0][3:]
 
     return cleaned_list_data
 
@@ -310,7 +312,7 @@ def extract_rotation_matrix(data, position):
     """
    
     cleaned_list_data = clean_list(data)
-    rotatation_vector = cleaned_list_data[position][3:].split(',')
+    rotatation_vector = cleaned_list_data[position].split(',')
     rotatation_vector = np.array(rotatation_vector, dtype=np.float64)
     rotation_matrix = rotatation_vector.reshape((3,3))
     return rotation_matrix
@@ -327,7 +329,7 @@ def extract_euler_angles(data, position):
     """
     cleaned_list_data = clean_list(data)
 
-    euler_vector = cleaned_list_data[position][3:].split(',')
+    euler_vector = cleaned_list_data[position].split(',')
     euler_vector = np.array(euler_vector, dtype=np.float64)
     return euler_vector
 
@@ -343,7 +345,7 @@ def extract_quaternions(data, position):
     """
     cleaned_list_data = clean_list(data)
     
-    quaternion = cleaned_list_data[position][3:].split(',')
+    quaternion = cleaned_list_data[position].split(',')
     quaternion = np.array(quaternion, dtype=np.float64)
     return quaternion
 
@@ -359,7 +361,7 @@ def extract_gyro(data, position):
     """
     cleaned_list_data = clean_list(data)
     
-    gyro = cleaned_list_data[position][2:].split(',')
+    gyro = cleaned_list_data[position].split(',')
     gyro = np.array(gyro, dtype=np.float64)
     return gyro
 
@@ -374,14 +376,13 @@ def extract_accel(data, position):
         rotation matrix dictionary
     """
     cleaned_list_data = clean_list(data)
-    accel = cleaned_list_data[position][3:].split(',')
+    accel = cleaned_list_data[position].split(',')
 
     accel = np.array(accel, dtype=np.float64)
     return accel
 
 
-def extract_acc_quat(data):
-    # old
+def extract_acc_quat(data): # old
     """ Manipulate data to obtain rotation matrix
     
     Args:
@@ -391,7 +392,7 @@ def extract_acc_quat(data):
         rotation matrix dictionary
     """
     cleaned_list_data = clean_list(data)
-    acc = cleaned_list_data[0][3:].split(',')
+    acc = cleaned_list_data[0].split(',')
     quaternion = cleaned_list_data[1][:].split(',')
 
     acc = np.array(acc, dtype=np.float64)
@@ -400,7 +401,14 @@ def extract_acc_quat(data):
 
     return {'acc': acc, 'quaternions': quaternion}
 
+def extract_button(data, position):
+    print(position)
+    cleaned_list_data = clean_list(data)
 
+    button = cleaned_list_data[position].split(',')
+    #button = int(button)
+
+    return button
 
 def initialize_imu(configuration_dict):
     """ Initialize imu dongle and sensor

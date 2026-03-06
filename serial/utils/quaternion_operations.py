@@ -70,3 +70,9 @@ if __name__ == '__main__':
     resultantQuaternion = calculate_angle_between_quaternions([ 0.968, 0.008, -0.008, 0.252], [ 0.382, 0.605,  0.413, 0.563])
     print(resultantQuaternion)
 
+def euler_from_quaternion(quaternion):
+    rotacao = R.from_quat(quaternion)
+
+    angulo_euler = rotacao.as_euler('xyz', degrees=True)
+
+    return angulo_euler
