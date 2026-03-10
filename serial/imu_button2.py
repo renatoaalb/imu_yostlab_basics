@@ -1,14 +1,17 @@
-import utils.imu_yostlabs_lara as imu_yostlabs_lara
+from utils.imu_class_yostlabs_lara import IMU, initialize_dongle, start_streaming, stop_streaming
 import time
 
-imus = [9]
-serial_port = imu_yostlabs_lara.initialize_dongle(imus)
+imus = [10]
+serial_port = initialize_dongle(imus)
+print(serial_port)
+
+imu1 = IMU(serial_port, imus)
 
 input("Press Enter to start configuration")
-streaming_slots1 = imu_yostlabs_lara.configure_imu(serial_port, imus, show_quaternion=False, show_button=True, show_euler_angle=False)
+imu1.configure()
 
 input("Press Enter to start streaming")
-imu_yostlabs_lara.start_streaming(serial_port, imu_ids = imus, frequency = 100, timestamp = True)
+start_streaming(serial_port, imu_ids = imus, frequency = 100)
 
 current_button = None
 
@@ -16,9 +19,9 @@ startTime = time.time()
 serial_port.reset_input_buffer()
 while True: 
     try:
-        data = imu_yostlabs_lara.read_data(serial_port)
+        data = imu1.read_data()
         if data is not None:
-            button = imu_yostlabs_lara.extract_data(data, type_of_data = 250, imu_id = 9, streamming_slots=streaming_slots1)
+            button = imu1.extract_data(data, type_of_data = 250)
 
             if button is not None:
                 current_button = button
@@ -30,5 +33,5 @@ while True:
 
     except KeyboardInterrupt:            
         print("Finished execution with control + c. ")
-        imu_yostlabs_lara.stop_streaming(serial_port, imus)
+        stop_streaming(serial_port, imus)
         break

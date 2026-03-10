@@ -402,11 +402,9 @@ def extract_acc_quat(data): # old
     return {'acc': acc, 'quaternions': quaternion}
 
 def extract_button(data, position):
-    print(position)
     cleaned_list_data = clean_list(data)
 
     button = cleaned_list_data[position].split(',')
-    #button = int(button)
 
     return button
 

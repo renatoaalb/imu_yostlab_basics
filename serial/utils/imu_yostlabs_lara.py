@@ -148,8 +148,6 @@ def extract_data(data, type_of_data, imu_id, streamming_slots):
 
     current_strategy = data_strategies.get(type_of_data)
 
-    print
-
     value = current_strategy["extract"](data, streamming_slots.index(type_of_data))
 
     if data[1] == imu_id:

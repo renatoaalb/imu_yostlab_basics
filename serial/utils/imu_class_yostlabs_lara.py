@@ -47,10 +47,15 @@ class IMU:
         self.serial_port = serial_port
         self.imu_ids = imu_ids
         self.streaming_commands = []
-
-    def configure_imu(self, disableCompass = True, disableGyro = False, disableAccelerometer = False, gyroAutoCalib = True, 
+        self.streaming_indices = {}
+    
+    def configure(self, disableCompass = True, disableGyro = False, disableAccelerometer = False, gyroAutoCalib = True, 
                     filterMode = 1, tareSensor = True, show_quaternion = True, show_euler_angle = True, show_accel = False, show_gyro = False,
                     show_compass = False, show_rotation_matrix = False, tareWithQuaternion = None, show_button = False, baudrate = 115200, timestamp = True):
+        
+        serial_port = self.serial_port
+        print("2: ", serial_port)
+        imu_ids = self.imu_ids
 
         streaming_commands = list()
 
@@ -72,8 +77,6 @@ class IMU:
 
         self.streaming_commands = streaming_commands
 
-        print(streaming_commands)
-
 
         imu_configuration = {
             "disableCompass": disableCompass, #command 109
@@ -83,22 +86,25 @@ class IMU:
             "filterMode": filterMode, #command 123
             "tareSensor": tareSensor, #command 96
             "tareWithQuaternion": tareWithQuaternion,
-            "logical_ids": self.imu_ids,
+            "logical_ids": imu_ids,
             "streaming_commands": streaming_commands, #command 80 - ccepts a list of 8 bytes
             "baudrate": baudrate, #command 231,
             # to implement yet
             "buttonState": show_button
         }
 
-        serial_op.revised_initialize_imu(self.serial_port, imu_configuration)
+        serial_op.revised_initialize_imu(serial_port, imu_configuration)
         time.sleep(2)
         print()
 
+        return streaming_commands
+
     def read_data(self):
-        bytes_to_read = self.serial_port.in_waiting
+        serial_port = self.serial_port
+        bytes_to_read = serial_port.in_waiting
 
         if bytes_to_read > 0:
-            data = self.serial_port.read(bytes_to_read)
+            data = serial_port.read(bytes_to_read)
             
             if data[0] != 0 and len(data) <=3:
                 print('Corrupted data read.')
@@ -106,7 +112,7 @@ class IMU:
                 return data
         
 
-    def extract_data(self, data, type_of_data):
+    def extract_data(self, data, type_of_data, imu_id):
         # Set parameters for IMU configuration
         # streaming commands:
         # 0: get tared orientation as quaternions
@@ -117,19 +123,24 @@ class IMU:
         # 39: get corrected accelerometer vector
         # 40: get corrected magnetometer data !!
 
+        streamming_slots = self.streaming_commands
+
         current_strategy = data_strategies.get(type_of_data)
-    
 
-        value = current_strategy["extract"](data, self.streaming_commands.index(type_of_data))
+        value = current_strategy["extract"](data, streamming_slots.index(type_of_data))
 
-        if data[1] == self.imu_ids:
+        if data[1] == imu_id:
             #timestamp = serial_op.get_timestamp(serial_port, imu_id)
             #print(timestamp)
             return value
 
                 # Check which IMU is sending information
+    
+def stop_streaming(serial_port, imu_ids):
+    serial_op.stop_streaming(serial_port, imu_ids)
+    serial_op.manual_flush(serial_port)
 
-    def start_streaming(serial_port, imu_ids, frequency, timestamp = False, duration = 4294967295, delay =  0):
+def start_streaming(serial_port, imu_ids, frequency, timestamp = False, duration = 4294967295, delay =  0):
         interval = 1000000 / frequency
 
         if frequency == 0:
@@ -143,15 +154,11 @@ class IMU:
             "timestamp": timestamp,
             "logical_ids": imu_ids
         }
-        
-        serial_op.configure_streaming(serial_port, streaming_configuration)
+
+        #serial_op.configure_streaming(serial_port, streaming_configuration)
 
         print("Starting streamnig.")
         # Start streaming
         serial_op.start_streaming(serial_port, streaming_configuration['logical_ids'])
         
         print("IMU's ready to use.")
-
-    def stop_streaming(serial_port, imu_ids):
-        serial_op.stop_streaming(serial_port, imu_ids)
-        serial_op.manual_flush(serial_port)

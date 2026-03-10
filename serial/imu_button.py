@@ -17,9 +17,9 @@ serial_port.reset_input_buffer()
 while True: 
     try:
         data = imu_yostlabs_lara.read_data(serial_port)
+
         if data is not None:
-            print(data)
-            button = imu_yostlabs_lara.extract_data(data, type_of_data = 250, imu_id = 9, streamming_slots=streaming_slots1)
+            button = imu_yostlabs_lara.extract_data(data, type_of_data = 250, imu_id = 10, streamming_slots=streaming_slots1)
 
             if button is not None:
                 current_button = button
