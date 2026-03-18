@@ -3,36 +3,33 @@ import time
 
 imus = [9]
 input("Press Enter to start configuration")
-serial_port = imu_yostlabs_lara.initialize_dongle(imus)
-streaming_slots = imu_yostlabs_lara.configure_imu(serial_port, imus)
+serial_port = imu_yostlabs_lara.initialize_sensor(imus)
+streaming_slots1 = imu_yostlabs_lara.configure_imu(serial_port, imus, show_euler_angle=False, show_quaternion=False, 
+                                                   show_accel=True, show_gyro=True)
 
 input("Press Enter to start streaming")
 imu_yostlabs_lara.start_streaming(serial_port, imu_ids = imus, frequency = 100, timestamp = True)
 
-current_quaternion1 = current_quaternion2 = None
+current_accel = None
 
 startTime = time.time()
 serial_port.reset_input_buffer()
 while True: 
     try:
         data = imu_yostlabs_lara.read_data(serial_port)
-        print(data)
+        
 
         if data is not None:
-            quaternion1 = imu_yostlabs_lara.extract_data(data, type_of_data = 0, imu_id = 9)
-            quaternion2 = imu_yostlabs_lara.extract_data(data, type_of_data = 0, imu_id = 10)
+            print(data)
+            accel = imu_yostlabs_lara.extract_data(data, type_of_data = 39, imu_id = imus, streaming_slots=streaming_slots1, usb = True)
 
-            if quaternion1 is not None:
-                current_quaternion1 = quaternion1
-
-            if quaternion2 is not None:
-                current_quaternion2 = quaternion2
+            if accel is not None:
+                current_accel = accel
                 
-        if (current_quaternion1 is not None) and (current_quaternion2 is not None):
+        if (current_accel is not None):
             timestamp = time.time() - startTime
-            print("Quaternion 1:", current_quaternion1, "\nQuaternion 2:", current_quaternion2, "\nTimestamp:",
-                  timestamp, "\n")
-            current_quaternion1 = current_quaternion2 = None     
+            #print("Accel:", current_accel, "\nTimestamp:", timestamp, "\n")
+            current_accel = None
 
     except KeyboardInterrupt:            
         print("Finished execution with control + c. ")

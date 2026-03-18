@@ -101,6 +101,7 @@ def apply_command(serial_port, command, showResponse=False):
     """
     serial_port.write(command)
     time.sleep(0.1)
+    out = str()
     if(showResponse):
         while serial_port.inWaiting():
             out = '>> ' + serial_port.read(serial_port.inWaiting()).decode()
@@ -260,7 +261,7 @@ def configure_streaming(serial_port, configDict):
 def get_timestamp(serial_port, logical_ids):
     for id in logical_ids:
         command = create_imu_command(id, 83)
-        apply_command(serial_port, command, showResponse=True)
+        apply_command(serial_port, command)
 
 
 def tare_sensor(serial_port, logical_ids):
@@ -470,6 +471,21 @@ def initialize_dongle(imu_ids):
     # Find and open serial port for the IMU dongle
     print("Getting imu object:")
     serial_port = get_dongle_object()
+    print("Done.")
+
+    # Clean outputs 
+    manual_flush(serial_port)
+
+    # Stop streaming
+    print("Stoping streaming.")
+    stop_streaming(serial_port, imu_ids)
+
+    return serial_port
+
+def initialize_sensor(imu_ids):
+    # Find and open serial port for the IMU dongle
+    print("Getting imu object:")
+    serial_port = get_sensor_object()
     print("Done.")
 
     # Clean outputs 

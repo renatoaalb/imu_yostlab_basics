@@ -33,13 +33,13 @@ data_strategies = {
         "angle_function": None,
         "position": ROTATION_MATRIX_POSITION
     },
-    37: {
+    38: {
         "extract": serial_op.extract_gyro,
         "key": "gyro",
         "angle_function": None,
         "position": GYRO_POSITION
     },
-    38: {
+    39: {
         "extract": serial_op.extract_accel,
         "key": "accel",
         "angle_function": None,
@@ -54,6 +54,10 @@ data_strategies = {
 
 def initialize_dongle(imu_ids):
     serial_port = serial_op.initialize_dongle(imu_ids)
+    return serial_port
+
+def initialize_sensor(imu_ids):
+    serial_port = serial_op.initialize_sensor(imu_ids)
     return serial_port
 
 def configure_imu(serial_port, imu_ids, disableCompass = True, disableGyro = False, disableAccelerometer = False, gyroAutoCalib = True, 
@@ -135,7 +139,34 @@ def read_data(serial_port):
             return data
     
 
-def extract_data(data, type_of_data, imu_id, streamming_slots):
+def extract_data(data, type_of_data, imu_id, streaming_slots, usb = False):
+    # Set parameters for IMU configuration
+    # streaming commands:
+    # 0: get tared orientation as quaternions
+    # 1: get tared orientation as euler angles
+    # 2: rotation matrix !!
+    # 37: get all corrected component sensor data
+    # 38: get corrected gyro rate
+    # 39: get corrected accelerometer vector
+    # 40: get corrected magnetometer data !!
+
+    if usb == True:
+        value = extract_data_usb(data, type_of_data, imu_id, streaming_slots)
+        return value
+
+
+    current_strategy = data_strategies.get(type_of_data)
+
+    value = current_strategy["extract"](data, streaming_slots.index(type_of_data))
+
+    if data[1] == imu_id:
+        #timestamp = serial_op.get_timestamp(serial_port, imu_id)
+        #print(timestamp)
+        return value
+
+            # Check which IMU is sending information
+
+def extract_data_usb(data, type_of_data, imu_id, streaming_slots, usb = False):
     # Set parameters for IMU configuration
     # streaming commands:
     # 0: get tared orientation as quaternions
@@ -148,18 +179,10 @@ def extract_data(data, type_of_data, imu_id, streamming_slots):
 
     current_strategy = data_strategies.get(type_of_data)
 
-    value = current_strategy["extract"](data, streamming_slots.index(type_of_data))
+    value = current_strategy["extract"](data, streaming_slots.index(type_of_data))
+    return value
 
-    if data[1] == imu_id:
-        #timestamp = serial_op.get_timestamp(serial_port, imu_id)
-        #print(timestamp)
-        return value
-
-            # Check which IMU is sending information
-    
 def stop_streaming(serial_port, imu_ids):
     serial_op.stop_streaming(serial_port, imu_ids)
     serial_op.manual_flush(serial_port)
 
-# def correct_position(current_strategy["position"])
-# return real_position

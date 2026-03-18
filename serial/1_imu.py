@@ -7,7 +7,7 @@ import time
 
 # Set parameters for IMU configuration
 # streaming commands:
-# 0: get tared orientation as quaternions
+#  0: get tared orientation as quaternions
 # 1: get tared orientation as euler angles
 # 2: rotation matrix
 # 37: get all corrected component sensor data
@@ -44,7 +44,7 @@ imu_configuration = {
     "logical_ids": imu_ids,
     "streaming_commands": [0, 38, 39, 255, 255, 255, 255, 255], #command 80 - ccepts a list of 8 bytes
     "baudrate": 115200, #command 231,
-    "timestamp": True
+    "timestamp": False
 }
 
 
@@ -82,6 +82,7 @@ while True:
 
             # Obtain data in dongle serial port
             data = serial_port.read(bytes_to_read)
+            print(data)
             
             if data[0] != 0 and len(data) <=3:
                 print('Corrupted data read.')
@@ -91,15 +92,15 @@ while True:
                 #pegar informações
                 quaternion_value = serial_op.extract_quaternions(data, 0)
                 #euler_angle_value = serial_op.extract_euler_angles(data, 0)
-                accelerometer_value = serial_op.extract_accel(data, 1)
-                gyro_value = serial_op.extract_gyro(data, 2)
+                accelerometer_value = serial_op.extract_accel(data, 2)
+                gyro_value = serial_op.extract_gyro(data, 1)
                 
 
                 quaternions.append(quaternion_value)
                 #euler
                 accelerometer.append(accelerometer_value)
-                gyro.append(gyro_value)
-                # accelerometer.append(accelerometer_value)
+                #gyro.append(gyro_value)
+                accelerometer.append(accelerometer_value)
 
                 timestamp = time.time() - startTime
                 timestamps.append(timestamp)
